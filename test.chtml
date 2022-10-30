@@ -1,0 +1,6 @@
+in document
+	in head
+		title "App name"
+	in body
+		in container
+			h1 "Hello world!"
