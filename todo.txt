@@ -1,0 +1,3 @@
+[] embeddable css
+[] embeddable js
+[] macros

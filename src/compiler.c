@@ -80,10 +80,17 @@ static Token peekStack(int depth) {
   return *(compiler.stackTop - depth - 1);
 }
 
+/**
+ * @brief Removes quotes from a string. Used to remove quotes from attribute
+ * values. ALLOCATES A NEW STRING THAT MUST BE FREED.
+ * 
+ * @param str the string to remove quotes from.
+ * @param len the length of the string.
+ * @return char* the string with quotes removed. Must be freed.
+ */
 static char* removeQuotes(char* str, int len) {
-  char* newStr = malloc((len - 1) * sizeof(char*));
-  strncpy(newStr, str + 1, len);
-  newStr[len - 1] = '\0';
+  char* newStr = malloc((len - 2) * sizeof(char*));
+  strncpy(newStr, str + 1, len - 1);
   return newStr;
 }
 
@@ -114,6 +121,7 @@ static void finishTags(int tabs) {
 
 static void textTag(char* tagName) {
   Token text = scanToken();
+  printf("%.-6s");
   printToken(text);
   if (text.type != TOKEN_TEXT) {
     compileError("Expected text after text-tag token");
@@ -121,12 +129,12 @@ static void textTag(char* tagName) {
 
   char* output = removeQuotes(text.start, text.length);
 
-  int len = snprintf(NULL, 0, "<%s>\0", tagName);
+  int len = snprintf(NULL, 0, "<%s>", tagName);
 
   char* open = malloc(len);
   char* close = malloc(len + 1);
-  sprintf(open, "<%s>\0", tagName);
-  sprintf(close, "</%s>\0", tagName);
+  sprintf(open, "<%s>", tagName);
+  sprintf(close, "</%s>", tagName);
   addOutput(open);
   addOutput(output);
   addOutput(close);
@@ -169,15 +177,21 @@ static void cssTag() {
   if (path.type != TOKEN_TEXT) {
     compileError("Expected path after css-tag token");
   }
+  printf("%.-6s");
+  printToken(path);
 
   char* output = removeQuotes(path.start, path.length);
 
-  int len = snprintf(NULL, 0, "<link rel=\"stylesheet\" href=\"%s\">\0", output);
+  const char* template = "<link rel=\"stylesheet\" href=\"%s\" />";
+
+  int len =
+      snprintf(NULL, 0, template, output);
 
   char* open = malloc(len);
-  sprintf(open, "<link rel=\"stylesheet\" href=\"%s\">\0", output);
+  sprintf(open, template, output);
   addOutput(open);
   free(output);
+  free(open);
 }
 
 static void statement(Token token) {
@@ -205,9 +219,8 @@ static void statement(Token token) {
     case TOKEN_CSS:
       cssTag();
     case TOKEN_RAW_HTML: {
-      char* output = malloc(token.length - 1);
-      memcpy(output, token.start + 1, token.length - 1);
-      output[token.length - 1] = '\0';
+      char* output = malloc(token.length - 2);
+      memcpy(output, token.start + 1, token.length - 2);
       addOutput(output);
       free(output);
       break;
@@ -216,11 +229,13 @@ static void statement(Token token) {
       compileError("Expected statement.");
       break;
   }
+  compiler.instruction++;
 }
 
 void initCompiler() {
   compiler.stackTop = compiler.stack;
   compiler.output = NULL;
+  compiler.instruction = 0;
 }
 
 void compile() {
@@ -229,6 +244,7 @@ void compile() {
   Token current = scanToken();
 
   while (current.type != TOKEN_EOF) {
+    printf("%.4d: ", compiler.instruction);
     printToken(current);
 
     finishTags(current.tab);
@@ -237,6 +253,7 @@ void compile() {
 
     current = scanToken();
   }
+  printf("%.4d: ", compiler.instruction);
   printToken(current);
 
   finishTags(0);
