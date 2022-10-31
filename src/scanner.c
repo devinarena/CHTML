@@ -7,11 +7,11 @@
 
 Scanner scanner;
 
-static char peek() {
+char peek() {
   return *scanner.current;
 }
 
-static char peekNext() {
+char peekNext() {
   if (peek() == '\0')
     return '\0';
   return scanner.current[1];
@@ -165,6 +165,11 @@ Token scanToken() {
                         output = makeToken(TOKEN_CONTAINER);
                       }
                   }
+                }
+                break;
+              case 's':
+                if (strcmp(token, "css") == 0) {
+                  output = makeToken(TOKEN_CSS);
                 }
                 break;
             }

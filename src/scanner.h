@@ -17,6 +17,7 @@ typedef enum {
   TOKEN_HEADING5,
   TOKEN_HEADING6,
   TOKEN_PARAGRAPH,
+  TOKEN_CSS,
   TOKEN_TEXT,
   TOKEN_RAW_HTML,
 } TokenType;
@@ -41,5 +42,6 @@ typedef struct {
 void initScanner(char* source);
 Token scanToken();
 void printToken(Token token);
+char peek();
 
 #endif

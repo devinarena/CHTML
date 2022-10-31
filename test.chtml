@@ -1,6 +1,7 @@
 document
 	data
 		title "My website"
+		css "./test.css"
 	content
 		h1 "test heading."
 		p "test paragraph."

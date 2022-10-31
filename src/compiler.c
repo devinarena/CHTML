@@ -161,6 +161,25 @@ static void container(Token token) {
   pushStack(token);
 }
 
+static void cssTag() {
+  if (peek() == '\n') {
+    return;
+  }
+  Token path = scanToken();
+  if (path.type != TOKEN_TEXT) {
+    compileError("Expected path after css-tag token");
+  }
+
+  char* output = removeQuotes(path.start, path.length);
+
+  int len = snprintf(NULL, 0, "<link rel=\"stylesheet\" href=\"%s\">\0", output);
+
+  char* open = malloc(len);
+  sprintf(open, "<link rel=\"stylesheet\" href=\"%s\">\0", output);
+  addOutput(open);
+  free(output);
+}
+
 static void statement(Token token) {
   switch (token.type) {
     case TOKEN_DOCUMENT:
@@ -183,6 +202,8 @@ static void statement(Token token) {
     case TOKEN_PARAGRAPH:
       textTag("p");
       break;
+    case TOKEN_CSS:
+      cssTag();
     case TOKEN_RAW_HTML: {
       char* output = malloc(token.length - 1);
       memcpy(output, token.start + 1, token.length - 1);
