@@ -1,6 +1,6 @@
-in document
-	in head
-		title "App name"
-	in body
-		in container
-			h1 "Hello world!"
+document
+	data
+		title "My website"
+	content
+		h1 "test heading."
+		p "test paragraph."

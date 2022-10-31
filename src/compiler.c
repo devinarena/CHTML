@@ -140,10 +140,7 @@ static void heading(TokenType headingType) {
   free(heading);
 }
 
-static void container() {
-  Token token = scanToken();
-  printToken(token);
-
+static void container(Token token) {
   switch (token.type) {
     case TOKEN_DOCUMENT:
       addOutput("<html>");
@@ -164,8 +161,40 @@ static void container() {
   pushStack(token);
 }
 
-static void inStatement() {
-  container();
+static void statement(Token token) {
+  switch (token.type) {
+    case TOKEN_DOCUMENT:
+    case TOKEN_CONTAINER:
+    case TOKEN_HEAD:
+    case TOKEN_BODY:
+      container(token);
+      break;
+    case TOKEN_HEADING1:
+    case TOKEN_HEADING2:
+    case TOKEN_HEADING3:
+    case TOKEN_HEADING4:
+    case TOKEN_HEADING5:
+    case TOKEN_HEADING6:
+      heading(token.type);
+      break;
+    case TOKEN_TITLE:
+      textTag("title");
+      break;
+    case TOKEN_PARAGRAPH:
+      textTag("p");
+      break;
+    case TOKEN_RAW_HTML: {
+      char* output = malloc(token.length - 1);
+      memcpy(output, token.start + 1, token.length - 1);
+      output[token.length - 1] = '\0';
+      addOutput(output);
+      free(output);
+      break;
+    }
+    default:
+      compileError("Expected statement.");
+      break;
+  }
 }
 
 void initCompiler() {
@@ -176,44 +205,18 @@ void initCompiler() {
 void compile() {
   addOutput("<!DOCTYPE html>");
 
-  Token token = scanToken();
+  Token current = scanToken();
 
-  while (token.type != TOKEN_EOF) {
-    printToken(token);
+  while (current.type != TOKEN_EOF) {
+    printToken(current);
 
-    finishTags(token.tab);
+    finishTags(current.tab);
 
-    switch (token.type) {
-      case TOKEN_IN:
-        inStatement();
-        break;
-      case TOKEN_HEADING1:
-      case TOKEN_HEADING2:
-      case TOKEN_HEADING3:
-      case TOKEN_HEADING4:
-      case TOKEN_HEADING5:
-      case TOKEN_HEADING6:
-        heading(token.type);
-        break;
-      case TOKEN_TITLE:
-        textTag("title");
-        break;
-      case TOKEN_RAW_HTML: {
-        char* output = malloc(token.length - 1);
-        memcpy(output, token.start + 1, token.length - 1);
-        output[token.length - 1] = '\0';
-        addOutput(output);
-        free(output);
-        break;
-      }
-      default:
-        compileError("Unexpected token.");
-        break;
-    }
+    statement(current);
 
-    token = scanToken();
+    current = scanToken();
   }
-  printToken(token);
+  printToken(current);
 
   finishTags(0);
 

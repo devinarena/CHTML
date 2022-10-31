@@ -81,7 +81,8 @@ static Token quotedToken(TokenType type, char end) {
 
   while (peek() != end) {
     if (peek() == '\n') {
-      newLine();
+      scanner.line++;
+      scanner.col = 0;
     } else if (peek() == '\0') {
       return makeToken(TOKEN_ERROR);
     }
@@ -107,6 +108,11 @@ Token scanToken() {
       return quotedToken(TOKEN_TEXT, '"');
     case '`':
       return quotedToken(TOKEN_RAW_HTML, '`');
+    case 'p': {
+      Token output = makeToken(TOKEN_PARAGRAPH);
+      advance();
+      return output;
+    }
     default: {
       while ((c = peek()) != '\0' && c != ' ' && c != '\r' && c != '\t' &&
              c != '\n') {
@@ -129,14 +135,61 @@ Token scanToken() {
           break;
         }
         case 'c': {
-          if (strcmp(token, "container") == 0 || strcmp(token, "con") == 0) {
-            output = makeToken(TOKEN_CONTAINER);
+          // structurally correct but became messy, probably could be cleaned
+          // up.
+          if (length > 1) {
+            switch (token[1]) {
+              case 'o':
+                if (length > 2) {
+                  switch (token[2]) {
+                    case 'n':
+                      if (length > 3) {
+                        switch (token[3]) {
+                          case 't':
+                            if (length > 3) {
+                              switch (token[3]) {
+                                case 'a':
+                                  if (strcmp(token, "container") == 0) {
+                                    output = makeToken(TOKEN_CONTAINER);
+                                  }
+                                  break;
+                                case 't':
+                                  if (strcmp(token, "content") == 0) {
+                                    output = makeToken(TOKEN_BODY);
+                                  }
+                                  break;
+                              }
+                            }
+                        }
+                      } else {
+                        output = makeToken(TOKEN_CONTAINER);
+                      }
+                  }
+                }
+                break;
+            }
           }
           break;
         }
         case 'd': {
-          if (strcmp(token, "document") == 0) {
-            output = makeToken(TOKEN_DOCUMENT);
+          if (length > 1) {
+            switch (token[1]) {
+              case 'o':
+                if (strcmp(token, "document") == 0) {
+                  output = makeToken(TOKEN_DOCUMENT);
+                }
+                break;
+              case 'i':
+                if (strcmp(token, "div") == 0) {
+                  output = makeToken(TOKEN_CONTAINER);
+                }
+                break;
+              case 'a':
+                if (strcmp(token, "data") == 0) {
+                  output = makeToken(TOKEN_HEAD);
+                }
+                break;
+            }
           }
           break;
         }
@@ -176,12 +229,6 @@ Token scanToken() {
           }
           break;
         }
-        case 'i': {
-          if (strcmp(token, "in") == 0) {
-            output = makeToken(TOKEN_IN);
-          }
-          break;
-        }
         case 't': {
           if (strcmp(token, "title") == 0) {
             output = makeToken(TOKEN_TITLE);
@@ -214,9 +261,6 @@ void printToken(Token token) {
     case TOKEN_ERROR:
       printf("ERROR (");
       break;
-    case TOKEN_IN:
-      printf("IN (");
-      break;
     case TOKEN_DOCUMENT:
       printf("DOCUMENT (");
       break;
@@ -229,23 +273,29 @@ void printToken(Token token) {
     case TOKEN_CONTAINER:
       printf("CONTAINER (");
       break;
+    case TOKEN_BODY:
+      printf("BODY (");
+      break;
     case TOKEN_HEADING1:
       printf("HEADING1 (");
       break;
     case TOKEN_HEADING2:
-      printf("HEADING1 (");
+      printf("HEADING2 (");
       break;
     case TOKEN_HEADING3:
-      printf("HEADING1 (");
+      printf("HEADING3 (");
       break;
     case TOKEN_HEADING4:
-      printf("HEADING1 (");
+      printf("HEADING4 (");
       break;
     case TOKEN_HEADING5:
-      printf("HEADING1 (");
+      printf("HEADING5 (");
       break;
     case TOKEN_HEADING6:
-      printf("HEADING1 (");
+      printf("HEADING6 (");
+      break;
+    case TOKEN_PARAGRAPH:
+      printf("PARAGRAPH (");
       break;
     case TOKEN_TEXT:
       printf("TEXT (");
