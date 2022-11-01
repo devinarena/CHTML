@@ -159,6 +159,12 @@ Token scanToken() {
       return quotedToken(TOKEN_TEXT, '"');
     case '`':
       return quotedToken(TOKEN_RAW_HTML, '`');
+    case '/':
+      if (peekNext() == '/') {
+        while (peek() != '\0' && peek() != '\n')
+          advance();
+        return scanToken();
+      }
     case 'p': {
       Token output = makeToken(TOKEN_PARAGRAPH);
       advance();
@@ -358,6 +364,12 @@ void printToken(Token token) {
       break;
     case TOKEN_RAW_HTML:
       printf("RAW_HTML (");
+      break;
+    case TOKEN_CSS:
+      printf("CSS (");
+      break;
+    case TOKEN_COMMENT:
+      printf("COMMENT (");
       break;
     default:
       printf("UNKNOWN (");

@@ -1,4 +1,5 @@
 document
+	// testing comment
 	data
 		title "My website"
 		css "./test.css"
