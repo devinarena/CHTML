@@ -216,6 +216,7 @@ static void container() {
       compileError("Expected container type.");
   }
 
+  // Sloppy and should probably be fixed, used for css 
   if (match(TOKEN_LEFT_PAREN)) {
     consume(TOKEN_TEXT, "Expected text of css inside css block specifier.");
     char* css = removeQuotes(compiler.previous.start, compiler.previous.length);
