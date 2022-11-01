@@ -87,6 +87,28 @@ static Token peekStack(int depth) {
   return *(compiler.stackTop - depth - 1);
 }
 
+static void advance() {
+  compiler.previous = compiler.current;
+  compiler.current = scanToken();
+}
+
+static void consume(TokenType type, char* message) {
+  if (compiler.current.type == type) {
+    advance();
+    return;
+  }
+
+  compileError(message);
+}
+
+static bool match(TokenType type) {
+  if (compiler.current.type == type) {
+    advance();
+    return true;
+  }
+  return false;
+}
+
 /**
  * @brief Removes quotes from a string. Used to remove quotes from attribute
  * values. ALLOCATES A NEW STRING THAT MUST BE FREED.
@@ -134,7 +156,9 @@ static void finishTags(int tabs) {
  * @param tagName the tag to open and close around the text
  */
 static void textTag(char* tagName) {
-  Token text = scanToken();
+  advance();
+
+  Token text = compiler.previous;
   printf("%*c", 6, ' ');
   printToken(text);
   if (text.type != TOKEN_TEXT) {
@@ -160,34 +184,59 @@ static void textTag(char* tagName) {
  *
  * @param headingType the type of heading (h1-h6)
  */
-static void heading(TokenType headingType) {
+static void heading() {
   char* heading = malloc(sizeof(char*) * 2);
-  sprintf(heading, "h%d", headingType - TOKEN_HEADING1 + 1);
+  sprintf(heading, "h%d", compiler.previous.type - TOKEN_HEADING1 + 1);
   textTag(heading);
   free(heading);
 }
 
 /**
  * @brief Descent case for container type tags (document, div, head, body)
- *
- * @param token the token to descend on.
  */
-static void container(Token token) {
+static void container() {
+  Token token = compiler.previous;
+
+  char* tagName;
+
   switch (token.type) {
     case TOKEN_DOCUMENT:
-      addOutput("<html>");
+      tagName = "html";
       break;
     case TOKEN_CONTAINER:
-      addOutput("<div>");
+      tagName = "div";
       break;
     case TOKEN_HEAD:
-      addOutput("<head>");
+      tagName = "head";
       break;
     case TOKEN_BODY:
-      addOutput("<body>");
+      tagName = "body";
       break;
     default:
       compileError("Expected container type.");
+  }
+
+  if (match(TOKEN_LEFT_PAREN)) {
+    consume(TOKEN_TEXT, "Expected text of css inside css block specifier.");
+    char* css = removeQuotes(compiler.previous.start, compiler.previous.length);
+    printf("%s\n\n\n", css);
+    int len = snprintf(NULL, 0, "<%s style=\"%s\">", token.start, css);
+    char* open = malloc(len);
+    sprintf(open, "<%s style=\"%s\">", tagName, css);
+    addOutput(open);
+    free(css);
+    free(open);
+    pushStack(token);
+    consume(TOKEN_RIGHT_PAREN, "Unexpected end of css block specifier.");
+    return;
+  } else {
+    int len = snprintf(NULL, 0, "<%s>", tagName);
+    char* open = malloc(len);
+    sprintf(open, "<%s>", tagName);
+    addOutput(open);
+    free(open);
+    pushStack(token);
+    return;
   }
 
   pushStack(token);
@@ -201,7 +250,9 @@ static void cssTag() {
   if (peek() == '\n') {
     return;
   }
-  Token path = scanToken();
+  advance();
+
+  Token path = compiler.previous;
   if (path.type != TOKEN_TEXT) {
     compileError("Expected path after css-tag token");
   }
@@ -223,16 +274,16 @@ static void cssTag() {
 
 /**
  * @brief Base descent case for statements.
- *
- * @param token the token to descend on.
  */
-static void statement(Token token) {
+static void statement() {
+  Token token = compiler.previous;
+
   switch (token.type) {
     case TOKEN_DOCUMENT:
     case TOKEN_CONTAINER:
     case TOKEN_HEAD:
     case TOKEN_BODY:
-      container(token);
+      container();
       break;
     case TOKEN_HEADING1:
     case TOKEN_HEADING2:
@@ -240,7 +291,7 @@ static void statement(Token token) {
     case TOKEN_HEADING4:
     case TOKEN_HEADING5:
     case TOKEN_HEADING6:
-      heading(token.type);
+      heading();
       break;
     case TOKEN_TITLE:
       textTag("title");
@@ -280,20 +331,20 @@ void initCompiler() {
 void compile() {
   addOutput("<!DOCTYPE html>");
 
-  Token current = scanToken();
+  compiler.current = scanToken();
 
-  while (current.type != TOKEN_EOF) {
+  while (compiler.current.type != TOKEN_EOF) {
+    advance();
+
     printf("%.4d: ", compiler.instruction);
-    printToken(current);
+    printToken(compiler.previous);
 
-    finishTags(current.tab);
+    finishTags(compiler.previous.tab);
 
-    statement(current);
-
-    current = scanToken();
+    statement(compiler.previous);
   }
   printf("%.4d: ", compiler.instruction);
-  printToken(current);
+  printToken(compiler.current);
 
   finishTags(0);
 

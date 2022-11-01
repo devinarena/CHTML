@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "scanner.h"
 
@@ -165,14 +166,20 @@ Token scanToken() {
           advance();
         return scanToken();
       }
+      return makeToken(TOKEN_ERROR);
+    case '(':
+      advance();
+      return makeToken(TOKEN_LEFT_PAREN);
+    case ')':
+      advance();
+      return makeToken(TOKEN_RIGHT_PAREN);
     case 'p': {
       Token output = makeToken(TOKEN_PARAGRAPH);
       advance();
       return output;
     }
     default: {
-      while ((c = peek()) != '\0' && c != ' ' && c != '\r' && c != '\t' &&
-             c != '\n') {
+      while (isdigit((c = peek())) || isalpha(c)) {
         advance();
       }
 
@@ -201,26 +208,30 @@ Token scanToken() {
                   switch (token[2]) {
                     case 'n':
                       if (length > 3) {
-                        switch (token[3]) {
-                          case 't':
-                            if (length > 3) {
-                              switch (token[3]) {
-                                case 'a':
-                                  if (strcmp(token, "container") == 0) {
-                                    output = makeToken(TOKEN_CONTAINER);
-                                  }
-                                  break;
-                                case 't':
-                                  if (strcmp(token, "content") == 0) {
-                                    output = makeToken(TOKEN_BODY);
-                                  }
-                                  break;
+                        if (length == 4)
+                          output = makeToken(TOKEN_CONTAINER);
+                        else {
+                          switch (token[3]) {
+                            case 't':
+                              if (length > 4) {
+                                switch (token[4]) {
+                                  case 'a':
+                                    if (strcmp(token, "container") == 0) {
+                                      output = makeToken(TOKEN_CONTAINER);
+                                    }
+                                    break;
+                                  case 'e':
+                                    if (strcmp(token, "content") == 0) {
+                                      output = makeToken(TOKEN_BODY);
+                                    }
+                                    break;
+                                }
                               }
-                            }
+                              break;
+                          }
                         }
-                      } else {
-                        output = makeToken(TOKEN_CONTAINER);
                       }
+                      break;
                   }
                 }
                 break;
@@ -368,8 +379,11 @@ void printToken(Token token) {
     case TOKEN_CSS:
       printf("CSS (");
       break;
-    case TOKEN_COMMENT:
-      printf("COMMENT (");
+    case TOKEN_LEFT_PAREN:
+      printf("LEFT_PAREN (");
+      break;
+    case TOKEN_RIGHT_PAREN:
+      printf("RIGHT_PAREN (");
       break;
     default:
       printf("UNKNOWN (");

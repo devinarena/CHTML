@@ -18,6 +18,8 @@ typedef struct {
   Token* stackTop;
   char* output;
   uint16_t instruction;
+  Token previous;
+  Token current;
 } Compiler;
 
 void initCompiler();

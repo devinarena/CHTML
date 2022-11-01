@@ -28,6 +28,8 @@ typedef enum {
   TOKEN_CSS,
   TOKEN_TEXT,
   TOKEN_RAW_HTML,
+  TOKEN_LEFT_PAREN,
+  TOKEN_RIGHT_PAREN,
 } TokenType;
 
 typedef struct {
