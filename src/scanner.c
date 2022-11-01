@@ -5,23 +5,47 @@
 
 #include "scanner.h"
 
+/**
+ * @file scanner.c
+ * @author Devin Arena
+ * @brief Contains the logic for converting a source string into a stream of
+ *tokens.
+ * @since 10/30/2022
+ **/
+
 Scanner scanner;
 
+/**
+ * @brief Peek at the current character in the source code.
+ *
+ * @return char the current character.
+ */
 char peek() {
   return *scanner.current;
 }
 
+/**
+ * @brief Peek at the next character in the source code.
+ *
+ * @return char the next character in the source code.
+ */
 char peekNext() {
   if (peek() == '\0')
     return '\0';
   return scanner.current[1];
 }
 
+/**
+ * @brief Advance the scanner to the next character.
+ */
 static void advance() {
   scanner.current++;
   scanner.col++;
 }
 
+/**
+ * @brief Counts the number of tabs until the next non-tab character.
+ */
 static void countIndentation() {
   scanner.tabs = 0;
 
@@ -35,12 +59,20 @@ static void countIndentation() {
   scanner.start = scanner.current;
 }
 
+/**
+ * @brief Updates values for the next line.
+ */
 static void newLine() {
   scanner.line++;
   scanner.col = 0;
   countIndentation();
 }
 
+/**
+ * @brief Zeroes out the scanner's memory.
+ *
+ * @param source the source code to scan.
+ */
 void initScanner(char* source) {
   scanner.start = source;
   scanner.current = source;
@@ -65,6 +97,12 @@ static void skipWhitespace() {
   scanner.start = scanner.current;
 }
 
+/**
+ * @brief Creates a token with the given type and returns it.
+ *
+ * @param type the type of the token.
+ * @return Token the token.
+ */
 static Token makeToken(TokenType type) {
   Token token;
   token.type = type;
@@ -76,6 +114,13 @@ static Token makeToken(TokenType type) {
   return token;
 }
 
+/**
+ * @brief Creates a quoted token '', "", ``.
+ *
+ * @param type the type of token.
+ * @param end the character that ends the token.
+ * @return Token the generated token.
+ */
 static Token quotedToken(TokenType type, char end) {
   advance();
 
@@ -97,6 +142,12 @@ static Token quotedToken(TokenType type, char end) {
   return token;
 }
 
+/**
+ * @brief Scans the next token (generates a token based on the current character
+ * of the input string)
+ *
+ * @return Token the next token.
+ */
 Token scanToken() {
   skipWhitespace();
 

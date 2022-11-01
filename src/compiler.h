@@ -6,6 +6,13 @@
 
 #include "scanner.h"
 
+/**
+ * @file compiler.h
+ * @author Devin Arena
+ * @brief Header file for compiler.
+ * @since 11/1/2022
+ **/
+
 typedef struct {
   Token stack[256];
   Token* stackTop;

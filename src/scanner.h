@@ -2,6 +2,13 @@
 #ifndef CHTML_SCANNER_H
 #define CHTML_SCANNER_H
 
+/**
+ * @file scanner.h
+ * @author Devin Arena
+ * @brief Header file for scanner module.
+ * @since 10/30/2022
+ **/
+
 typedef enum {
   TOKEN_EOF,
   TOKEN_ERROR,
