@@ -45,26 +45,28 @@ void freeTable(Table* table) {
  * @param key PdString* the key to search for.
  * @return Entry* the entry that was found.
  */
-static Entry* findEntry(Entry* entries, int capacity, char** key) {
-  uint32_t index = key->hash & (capacity - 1);
+static Entry* findEntry(Entry* entries, int capacity, char* key) {
+  uint32_t index = (HASH_STRING(key) & (capacity - 1));
   Entry* tombstone = NULL;
 
   while (true) {
     Entry* entry = &entries[index];
 
     if (entry->key == NULL) {
-      if (IS_NULL(entry->value)) {
+      if (entry->value == NULL) {
         return tombstone != NULL ? tombstone : entry;
       } else {
         if (tombstone == NULL)
           tombstone = entry;
       }
-    } else if (entry->key == key) {
+    } else if (strcmp(entry->key, key) == 0) {
       return entry;
     }
 
     index = (index + 1) & (capacity - 1);
   }
+  
+  return NULL;
 }
 
 /**
@@ -75,10 +77,10 @@ static Entry* findEntry(Entry* entries, int capacity, char** key) {
  * @param capacity int the new capacity of the table.
  */
 static void adjustCapacity(Table* table, int capacity) {
-  Entry* entries = ALLOCATE(Entry, capacity);
+  Entry* entries = malloc(sizeof(Entry) * capacity);
   for (int i = 0; i < capacity; i++) {
     entries[i].key = NULL;
-    entries[i].value = NULL_VAL;
+    entries[i].value = NULL;
   }
 
   table->count = 0;
@@ -93,7 +95,7 @@ static void adjustCapacity(Table* table, int capacity) {
     table->count++;
   }
 
-  FREE_ARRAY(Entry, table->entries, table->capacity);
+  free(table->entries);
 
   table->entries = entries;
   table->capacity = capacity;
@@ -105,19 +107,17 @@ static void adjustCapacity(Table* table, int capacity) {
  *
  * @param table Table* the table to search.
  * @param key PdString* the key to search for.
- * @param value Value* the value to assign to.
  * @return bool true if the key was found, false otherwise.
  */
-bool tableGet(Table* table, PdString* key, Value* value) {
+char* tableGet(Table* table, char* key) {
   if (table->count == 0)
-    return false;
+    return NULL;
 
   Entry* entry = findEntry(table->entries, table->capacity, key);
   if (entry->key == NULL)
-    return false;
+    return NULL;
 
-  *value = entry->value;
-  return true;
+  return entry->value;
 }
 
 /**
@@ -130,15 +130,15 @@ bool tableGet(Table* table, PdString* key, Value* value) {
  * @param value Value the value to set.
  * @return bool true if the key is not found, false otherwise.
  */
-bool tableSet(Table* table, PdString* key, Value value) {
+bool tableSet(Table* table, char* key, char* value) {
   if (table->count + 1 > table->capacity * TABLE_MAX_LOAD) {
-    int capacity = GROW_CAPACITY(table->capacity);
+    int capacity = table->capacity < 8 ? 8 : table->capacity * 2;
     adjustCapacity(table, capacity);
   }
 
   Entry* entry = findEntry(table->entries, table->capacity, key);
   bool isNewKey = entry->key == NULL;
-  if (isNewKey && IS_NULL(entry->value))
+  if (isNewKey && entry->value == NULL)
     table->count++;
 
   entry->key = key;
@@ -153,7 +153,7 @@ bool tableSet(Table* table, PdString* key, Value value) {
  * @param key PdString* the key to delete.
  * @return bool true if the key was found, false otherwise.
  */
-bool tableDelete(Table* table, PdString* key) {
+bool tableDelete(Table* table, char* key) {
   if (table->count == 0)
     return false;
 
@@ -162,7 +162,7 @@ bool tableDelete(Table* table, PdString* key) {
     return false;
 
   entry->key = NULL;
-  entry->value = FROM_BOOL(true);
+  entry->value = "!tombstone"; // tombstone
   return true;
 }
 
@@ -192,7 +192,7 @@ void tableAddAll(Table* from, Table* to) {
  * @param hash uint32_t the hash of the string.
  * @return PdString* the string that was found or NULL.
  */
-PdString* tableFindString(Table* table,
+char* tableFindString(Table* table,
                            const char* chars,
                            int length,
                            uint32_t hash) {
@@ -205,30 +205,13 @@ PdString* tableFindString(Table* table,
     Entry* entry = &table->entries[index];
 
     if (entry->key == NULL) {
-      if (IS_NULL(entry->value))
+      if (entry->value== NULL)
         return NULL;
-    } else if (entry->key->length == length && entry->key->hash == hash &&
-               memcmp(entry->key->chars, chars, length) == 0) {
+    } else if (strlen(entry->key) == length && HASH_STRING(entry->key) == hash &&
+               memcmp(entry->key, chars, length) == 0) {
       return entry->key;
     }
 
     index = (index + 1) & (table->capacity - 1);
   }
 }
-
-// void tableRemoveWhite(Table* table) {
-//   for (int i = 0; i < table->capacity; i++) {
-//     Entry* entry = &table->entries[i];
-//     if (entry->key != NULL && !entry->key->obj.isMarked) {
-//       tableDelete(table, entry->key);
-//     }
-//   }
-// }
-
-// void markTable(Table* table) {
-//   for (int i = 0; i < table->capacity; i++) {
-//     Entry* entry = &table->entries[i];
-//     markObject((Object*)entry->key);
-//     markValue(entry->value);
-//   }
-// }

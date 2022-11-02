@@ -178,6 +178,9 @@ Token scanToken() {
       advance();
       return output;
     }
+    case '!':
+      advance();
+      return makeToken(TOKEN_EXCLAMATION);
     default: {
       while (isdigit((c = peek())) || isalpha(c)) {
         advance();
@@ -189,7 +192,7 @@ Token scanToken() {
       token[length - 1] = '\0';
       //   printf("%s\n", token);
 
-      Token output = makeToken(TOKEN_ERROR);
+      Token output = makeToken(TOKEN_IDENTIFIER);
 
       switch (token[0]) {
         case 'b': {
@@ -384,6 +387,12 @@ void printToken(Token token) {
       break;
     case TOKEN_RIGHT_PAREN:
       printf("RIGHT_PAREN (");
+      break;
+    case TOKEN_EXCLAMATION:
+      printf("EXCLAMATION (");
+      break;
+    case TOKEN_IDENTIFIER:
+      printf("IDENTIFIER (");
       break;
     default:
       printf("UNKNOWN (");

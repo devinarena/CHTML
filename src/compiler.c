@@ -15,6 +15,8 @@
 
 Compiler compiler;
 
+static void expression();
+
 /**
  * @brief Writes a string to a file. Called once the compiler has finished
  * generating HTML.
@@ -83,15 +85,30 @@ static Token popStack() {
   return *(--compiler.stackTop);
 }
 
+/**
+ * @brief Returns the token at the top of the stack without removing it.
+ * 
+ * @param depth the depth of the token to return.
+ * @return Token the token at a depth of 'depth'.
+ */
 static Token peekStack(int depth) {
   return *(compiler.stackTop - depth - 1);
 }
 
+/**
+ * @brief Advances the compiler to the next token (assigning the previous token).
+ */
 static void advance() {
   compiler.previous = compiler.current;
   compiler.current = scanToken();
 }
 
+/**
+ * @brief Checks for a token, errroring out a message if the token is not found.
+ * 
+ * @param type the type of token to check for.
+ * @param message the error message to display if the token is not found.
+ */
 static void consume(TokenType type, char* message) {
   if (compiler.current.type == type) {
     advance();
@@ -101,6 +118,12 @@ static void consume(TokenType type, char* message) {
   compileError(message);
 }
 
+/**
+ * @brief Checks if the current token is of a certain type.
+ * 
+ * @param type the type of token to check for.
+ * @return bool if the current token is of type 'type'.
+ */
 static bool match(TokenType type) {
   if (compiler.current.type == type) {
     advance();
@@ -156,7 +179,14 @@ static void finishTags(int tabs) {
  * @param tagName the tag to open and close around the text
  */
 static void textTag(char* tagName) {
-  advance();
+  int len = snprintf(NULL, 0, "<%s>", tagName);
+
+  char* open = malloc(len);
+  sprintf(open, "<%s>", tagName);
+  
+  addOutput(open);
+  
+  expression();
 
   Token text = compiler.previous;
   printf("%*c", 6, ' ');
@@ -166,15 +196,10 @@ static void textTag(char* tagName) {
   }
 
   char* output = removeQuotes(text.start, text.length);
-
-  int len = snprintf(NULL, 0, "<%s>", tagName);
-
-  char* open = malloc(len);
-  char* close = malloc(len + 1);
-  sprintf(open, "<%s>", tagName);
-  sprintf(close, "</%s>", tagName);
-  addOutput(open);
   addOutput(output);
+
+  char* close = malloc(len + 1);
+  sprintf(close, "</%s>", tagName);
   addOutput(close);
   free(output);
 }
@@ -216,7 +241,7 @@ static void container() {
       compileError("Expected container type.");
   }
 
-  // Sloppy and should probably be fixed, used for css 
+  // Sloppy and should probably be fixed, used for css
   if (match(TOKEN_LEFT_PAREN)) {
     consume(TOKEN_TEXT, "Expected text of css inside css block specifier.");
     char* css = removeQuotes(compiler.previous.start, compiler.previous.length);
@@ -251,7 +276,7 @@ static void cssTag() {
   if (peek() == '\n') {
     return;
   }
-  advance();
+  expression();
 
   Token path = compiler.previous;
   if (path.type != TOKEN_TEXT) {
@@ -271,6 +296,44 @@ static void cssTag() {
   addOutput(open);
   free(output);
   free(open);
+}
+
+static void macro() {
+  printf("%*c", 6, ' ');
+  printToken(compiler.previous); // Print the macro token
+  advance();
+
+  Token name = compiler.previous;
+  if (name.type != TOKEN_IDENTIFIER) {
+    compileError("Expected name after macro token");
+  }
+  printf("%*c", 6, ' ');
+  printToken(name);
+
+  char* key = "test";
+
+  char* value = tableGet(&compiler.macros, key);
+  if (value == NULL) {
+    compileError("Undefined macro");
+  }
+  addOutput(value);
+
+}
+
+static void expression() {
+  advance();
+
+  switch(compiler.previous.type) {
+    case TOKEN_EXCLAMATION:
+      macro();
+      break;
+    case TOKEN_TEXT:
+      advance();
+      break;
+    default:
+      compileError("Expected expression");
+      break;
+  }
 }
 
 /**
@@ -324,6 +387,7 @@ void initCompiler() {
   compiler.stackTop = compiler.stack;
   compiler.output = NULL;
   compiler.instruction = 0;
+  initTable(&compiler.macros);
 }
 
 /**
@@ -331,6 +395,8 @@ void initCompiler() {
  */
 void compile() {
   addOutput("<!DOCTYPE html>");
+
+  tableSet(&compiler.macros, "test", "Hello World");
 
   compiler.current = scanToken();
 

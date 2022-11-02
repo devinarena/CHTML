@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "scanner.h"
+#include "table.h"
 
 /**
  * @file compiler.h
@@ -20,6 +21,7 @@ typedef struct {
   uint16_t instruction;
   Token previous;
   Token current;
+  Table macros;
 } Compiler;
 
 void initCompiler();

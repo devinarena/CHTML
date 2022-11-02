@@ -30,6 +30,8 @@ typedef enum {
   TOKEN_RAW_HTML,
   TOKEN_LEFT_PAREN,
   TOKEN_RIGHT_PAREN,
+  TOKEN_EXCLAMATION,
+  TOKEN_IDENTIFIER,
 } TokenType;
 
 typedef struct {
