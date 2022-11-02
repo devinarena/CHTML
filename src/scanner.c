@@ -1,8 +1,8 @@
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "scanner.h"
 
@@ -173,11 +173,6 @@ Token scanToken() {
     case ')':
       advance();
       return makeToken(TOKEN_RIGHT_PAREN);
-    case 'p': {
-      Token output = makeToken(TOKEN_PARAGRAPH);
-      advance();
-      return output;
-    }
     case '!':
       advance();
       return makeToken(TOKEN_EXCLAMATION);
@@ -187,6 +182,8 @@ Token scanToken() {
       }
 
       size_t length = scanner.current - scanner.start + 1;
+      if (length == 2 && *scanner.start == 'p') return makeToken(TOKEN_PARAGRAPH);
+
       char* token = malloc(length);
       memcpy(token, scanner.start, length - 1);
       token[length - 1] = '\0';

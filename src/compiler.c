@@ -87,7 +87,7 @@ static Token popStack() {
 
 /**
  * @brief Returns the token at the top of the stack without removing it.
- * 
+ *
  * @param depth the depth of the token to return.
  * @return Token the token at a depth of 'depth'.
  */
@@ -96,7 +96,8 @@ static Token peekStack(int depth) {
 }
 
 /**
- * @brief Advances the compiler to the next token (assigning the previous token).
+ * @brief Advances the compiler to the next token (assigning the previous
+ * token).
  */
 static void advance() {
   compiler.previous = compiler.current;
@@ -105,7 +106,7 @@ static void advance() {
 
 /**
  * @brief Checks for a token, errroring out a message if the token is not found.
- * 
+ *
  * @param type the type of token to check for.
  * @param message the error message to display if the token is not found.
  */
@@ -120,7 +121,7 @@ static void consume(TokenType type, char* message) {
 
 /**
  * @brief Checks if the current token is of a certain type.
- * 
+ *
  * @param type the type of token to check for.
  * @return bool if the current token is of type 'type'.
  */
@@ -172,6 +173,19 @@ static void finishTags(int tabs) {
   }
 }
 
+static void text() {
+  Token text = compiler.previous;
+  printf("%*c", 6, ' ');
+  printToken(text);
+  if (text.type != TOKEN_TEXT) {
+    compileError("Expected text after text-tag token");
+  }
+
+  char* output = removeQuotes(text.start, text.length);
+  addOutput(output);
+  free(output);
+}
+
 /**
  * @brief Descent case for tokens with text content (title tag, paragraph tag,
  * etc.)
@@ -183,25 +197,15 @@ static void textTag(char* tagName) {
 
   char* open = malloc(len);
   sprintf(open, "<%s>", tagName);
-  
+
   addOutput(open);
-  
+
   expression();
-
-  Token text = compiler.previous;
-  printf("%*c", 6, ' ');
-  printToken(text);
-  if (text.type != TOKEN_TEXT) {
-    compileError("Expected text after text-tag token");
-  }
-
-  char* output = removeQuotes(text.start, text.length);
-  addOutput(output);
 
   char* close = malloc(len + 1);
   sprintf(close, "</%s>", tagName);
   addOutput(close);
-  free(output);
+  // free(output);
 }
 
 /**
@@ -245,7 +249,6 @@ static void container() {
   if (match(TOKEN_LEFT_PAREN)) {
     consume(TOKEN_TEXT, "Expected text of css inside css block specifier.");
     char* css = removeQuotes(compiler.previous.start, compiler.previous.length);
-    printf("%s\n\n\n", css);
     int len = snprintf(NULL, 0, "<%s style=\"%s\">", token.start, css);
     char* open = malloc(len);
     sprintf(open, "<%s style=\"%s\">", tagName, css);
@@ -276,7 +279,7 @@ static void cssTag() {
   if (peek() == '\n') {
     return;
   }
-  expression();
+  advance();
 
   Token path = compiler.previous;
   if (path.type != TOKEN_TEXT) {
@@ -300,7 +303,7 @@ static void cssTag() {
 
 static void macro() {
   printf("%*c", 6, ' ');
-  printToken(compiler.previous); // Print the macro token
+  printToken(compiler.previous);  // Print the macro token
   advance();
 
   Token name = compiler.previous;
@@ -310,7 +313,9 @@ static void macro() {
   printf("%*c", 6, ' ');
   printToken(name);
 
-  char* key = "test";
+  char* key = malloc(name.length + 1);
+  strncpy(key, name.start, name.length);
+  key[name.length] = '\0';
 
   char* value = tableGet(&compiler.macros, key);
   if (value == NULL) {
@@ -318,17 +323,18 @@ static void macro() {
   }
   addOutput(value);
 
+  free(key);
 }
 
 static void expression() {
   advance();
 
-  switch(compiler.previous.type) {
+  switch (compiler.previous.type) {
     case TOKEN_EXCLAMATION:
       macro();
       break;
     case TOKEN_TEXT:
-      advance();
+      text();
       break;
     default:
       compileError("Expected expression");
@@ -374,7 +380,7 @@ static void statement() {
       break;
     }
     default:
-      compileError("Expected statement.");
+      expression();
       break;
   }
   compiler.instruction++;
@@ -396,7 +402,7 @@ void initCompiler() {
 void compile() {
   addOutput("<!DOCTYPE html>");
 
-  tableSet(&compiler.macros, "test", "Hello World");
+  tableSet(&compiler.macros, "pi", "3.14159");
 
   compiler.current = scanToken();
 

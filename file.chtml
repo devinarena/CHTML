@@ -1,7 +1,7 @@
 document
 	// testing comment
 	data
-		title !test
+		title !pi
 		css "./test.css"
 	content
 		con("background: red")
