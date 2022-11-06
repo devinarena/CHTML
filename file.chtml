@@ -1,9 +1,12 @@
+@redbox
+	con("background: red")
+
 document
 	// testing comment
 	data
 		title !pi
 		css "./test.css"
 	content
-		con("background: red")
+		!redbox
 			h1 "test heading."
 			p "test paragraph."

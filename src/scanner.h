@@ -1,13 +1,13 @@
 
-#ifndef CHTML_SCANNER_H
-#define CHTML_SCANNER_H
-
 /**
  * @file scanner.h
  * @author Devin Arena
  * @brief Header file for scanner module.
  * @since 10/30/2022
  **/
+
+#ifndef CHTML_SCANNER_H
+#define CHTML_SCANNER_H
 
 typedef enum {
   TOKEN_EOF,
@@ -31,6 +31,7 @@ typedef enum {
   TOKEN_LEFT_PAREN,
   TOKEN_RIGHT_PAREN,
   TOKEN_EXCLAMATION,
+  TOKEN_MACRO,
   TOKEN_IDENTIFIER,
 } TokenType;
 
@@ -52,6 +53,7 @@ typedef struct {
 } Scanner;
 
 void initScanner(char* source);
+void insertMacro(int tabs, char* source);
 Token scanToken();
 void printToken(Token token);
 char peek();

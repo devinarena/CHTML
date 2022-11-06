@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "compiler.h"
 #include "scanner.h"
 
 /**
@@ -81,6 +82,40 @@ void initScanner(char* source) {
   countIndentation();
 }
 
+void insertMacro(int tabs, char* source) {
+  char* newSource = malloc(strlen(source) * 2);
+  int totalLength = 0;
+  int lineNum = 0;
+  // split the given source string by newlines
+  char* token = strtok(source, "\n");
+  while (token != NULL) {
+    // add the tabs to the beginning of all but the first line
+    if (lineNum > 0) {
+      int length = strlen(token) + tabs + 1;
+      char* line = malloc(length);
+      for (int i = 0; i < tabs; i++) {
+        line[i] = '\t';
+      }
+      strcat(line, token);
+      line[tabs] = '\0';
+      strcat(newSource, line);
+      totalLength += length;
+    } else {
+      strcpy(newSource, token);
+      totalLength += strlen(token);
+    }
+    lineNum++;
+    token = strtok(NULL, "\n");
+  }
+  totalLength += strlen(scanner.start) + 1;
+  newSource = realloc(newSource, totalLength);
+  newSource[totalLength - 1] = '\0';
+  strcat(newSource, scanner.start);
+  scanner.start = newSource;
+  scanner.current = scanner.start;
+  printf("\tAFTER INSERTION:\n%s\n", scanner.start);
+}
+
 /**
  * @brief Skips whitespace characters, counting the number of tabs.
  *
@@ -143,6 +178,54 @@ static Token quotedToken(TokenType type, char end) {
   return token;
 }
 
+Token macro() {
+  advance();
+
+  char c;
+  while (isdigit((c = peek())) || isalpha(c)) {
+    advance();
+  }
+
+  int nameLen = scanner.current - scanner.start;
+  char* name = malloc(nameLen * sizeof(char*));
+  strncpy(name, scanner.start + 1, nameLen - 1);
+  name[nameLen - 1] = '\0';
+
+  scanner.start = scanner.current;
+  skipWhitespace();
+
+  char* start = scanner.start;
+
+  Token token = scanToken();
+  while (token.tab > 0) {
+    printf("TOKEN: %s %d %d\n", token.start, token.length, token.tab);
+    token = scanToken();
+  }
+  char* end = scanner.current - token.length;
+
+  int len = end - start + 1;
+  char* text = malloc(len * sizeof(char*));
+  strncpy(text, start, len - 1);
+  for (int i = len - 3; i >= 0; i--) {
+    if (text[i] != ' ' && text[i] != '\t' && text[i] != '\r' && text[i] != '\n' && text[i] != '\0') {
+      text[i + 1] = '\0';
+      break;
+    }
+  }
+
+  printf("DEFINED MACRO '%s' WITH TEXT '%s'\n", name, text);
+  scanner.start = start;
+  scanner.current = end;
+
+  Token macroToken = makeToken(TOKEN_MACRO);
+
+  addMacro(name, text);
+
+  scanner.start = scanner.current;
+
+  return macroToken;
+}
+
 /**
  * @brief Scans the next token (generates a token based on the current character
  * of the input string)
@@ -176,15 +259,18 @@ Token scanToken() {
     case '!':
       advance();
       return makeToken(TOKEN_EXCLAMATION);
+    case '@':
+      return macro();
     default: {
       while (isdigit((c = peek())) || isalpha(c)) {
         advance();
       }
 
       size_t length = scanner.current - scanner.start + 1;
-      if (length == 2 && *scanner.start == 'p') return makeToken(TOKEN_PARAGRAPH);
+      if (length == 2 && *scanner.start == 'p')
+        return makeToken(TOKEN_PARAGRAPH);
 
-      char* token = malloc(length);
+      char* token = malloc(length * sizeof(char*));
       memcpy(token, scanner.start, length - 1);
       token[length - 1] = '\0';
       //   printf("%s\n", token);
@@ -387,6 +473,9 @@ void printToken(Token token) {
       break;
     case TOKEN_EXCLAMATION:
       printf("EXCLAMATION (");
+      break;
+    case TOKEN_MACRO:
+      printf("MACRO (");
       break;
     case TOKEN_IDENTIFIER:
       printf("IDENTIFIER (");
