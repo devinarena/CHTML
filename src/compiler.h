@@ -25,7 +25,7 @@ typedef struct {
 } Compiler;
 
 void initCompiler();
-void compile();
+void compile(const char* outputFile);
 void addMacro(char* name, char* value);
 
 #endif

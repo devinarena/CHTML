@@ -25,7 +25,7 @@ static void expression();
  *
  * @param file the file to write to.
  */
-static void writeOutput(char* file) {
+static void writeOutput(const char* file) {
   FILE* f = fopen(file, "w");
   if (f == NULL) {
     printf("Error opening file!\n");
@@ -352,8 +352,7 @@ static void callMacro() {
 }
 
 /**
- * @brief 
- * 
+ * @brief Descent for expressions, generally follow other types of tokens.
  */
 static void expression() {
   switch (compiler.previous.type) {
@@ -428,7 +427,7 @@ void initCompiler() {
 /**
  * @brief Compiles the file into HTML.
  */
-void compile() {
+void compile(const char* outputFile) {
   addOutput("<!DOCTYPE html>");
 
   tableSet(&compiler.macros, "pi", "\"3.14159\"");
@@ -450,5 +449,5 @@ void compile() {
 
   finishTags(0);
 
-  writeOutput("index.html");
+  writeOutput(outputFile);
 }

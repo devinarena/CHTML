@@ -1,2 +1,2 @@
 @echo off
-chtml file.chtml
+chtml file.ch

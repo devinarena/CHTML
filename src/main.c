@@ -55,16 +55,17 @@ static char* readFile(const char* path) {
 
 int main(int argc, const char* argv[]) {
   if (argc <= 1) {
-    printf("Usage: %s <file>\n", argv[0]);
+    printf("Usage: %s <file> [output]\n", argv[0]);
     return 1;
   }
 
   char* file = readFile(argv[1]);
+  const char* outputName = argc >= 3 ? argv[2] : "index.html";
 
   initScanner(file);
   initCompiler();
 
-  compile();
+  compile(outputName);
 
   return 0;
 }
